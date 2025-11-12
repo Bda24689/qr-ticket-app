@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Hệ Thống Check Vé</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px;
+            background: white;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #666;
+        }
+        
+        .tab.active {
+            background: #f8f9ff;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .content {
+            padding: 20px;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: white;
+            margin-bottom: 10px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .ticket-preview {
+            border: 3px dashed #667eea;
+            border-radius: 16px;
+            padding: 30px;
+            margin: 20px 0;
+            background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);
+            text-align: center;
+        }
+        
+        .ticket-preview h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 22px;
+        }
+        
+        .ticket-preview .event-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            margin: 15px 0;
+        }
+        
+        .ticket-preview .customer-name {
+            font-size: 18px;
+            color: #666;
+            margin: 10px 0;
+        }
+        
+        .ticket-preview .ticket-code {
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            color: #667eea;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: inline-block;
+            margin: 15px 0;
+        }
+        
+        .ticket-preview .details {
+            font-size: 14px;
+            color: #999;
+            margin-top: 15px;
+        }
+        
+        #reader {
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .camera-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .camera-controls button {
+            flex: 1;
+        }
+        
+        .ticket-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .ticket-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .ticket-item.used {
+            background: #f5f5f5;
+            border-color: #ddd;
+        }
+        
+        .ticket-item.available {
+            background: #f0fff4;
+            border-color: #86efac;
+        }
+        
+        .ticket-code {
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .ticket-info {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+        
+        .badge-used {
+            background: #e5e5e5;
+            color: #666;
+        }
+        
+        .badge-available {
+            background: #86efac;
+            color: #166534;
+        }
+        
+        .alert {
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        .alert-success {
+            background: #d1fae5;
+            border: 2px solid #86efac;
+            color: #166534;
+        }
+        
+        .alert-error {
+            background: #fee2e2;
+            border: 2px solid #fca5a5;
+            color: #991b1b;
+        }
+        
+        .alert-info {
+            background: #dbeafe;
+            border: 2px solid #93c5fd;
+            color: #1e40af;
+        }
+        
+        .alert-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .alert-details {
+            font-size: 14px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+        
+        #qrcode {
+            margin: 20px auto;
+            text-align: center;
+        }
+        
+        #qrcode canvas,
+        #qrcode img {
+            margin: 0 auto;
+            display: block;
+        }
+        
+        .info-box {
+            background: #f0f9ff;
+            border: 2px solid #bae6fd;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .info-box h4 {
+            color: #0369a1;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .info-box ul {
+            font-size: 14px;
+            color: #075985;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1>🎫 Hệ Thống Check Vé</h1>
+                <p>QR Code sử dụng một lần</p>
+            </div>
+            
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('create')">Tạo Vé</button>
+                <button class="tab" onclick="switchTab('scan')">Quét Vé</button>
+                <button class="tab" onclick="switchTab('list')">Danh Sách</button>
+            </div>
+            
+            <div class="content">
+                <!-- Tab Tạo Vé -->
+                <div id="create" class="tab-content active">
+                    <h2 style="margin-bottom: 20px; color: #333;">Tạo Vé Mới</h2>
+                    <div class="form-group">
+                        <label>👤 Tên Khách Hàng</label>
+                        <input type="text" id="customerName" placeholder="Nguyễn Văn A">
+                    </div>
+                    <div class="form-group">
+                        <label>📅 Tên Sự Kiện</label>
+                        <input type="text" id="eventName" placeholder="Hội nghị công nghệ 2024">
+                    </div>
+                    <div class="form-group">
+                        <label>📍 Địa Điểm</label>
+                        <input type="text" id="eventLocation" placeholder="Trung tâm hội nghị Saigon">
+                    </div>
+                    <div class="form-group">
+                        <label>🕐 Thời Gian</label>
+                        <input type="text" id="eventTime" value="15/11/2025 - 9:00 AM" placeholder="20/12/2024 - 9:00 AM">
+                    </div>
+                    
+                    <button class="btn btn-primary" id="createBtn" onclick="createTicket()">Tạo Vé</button>
+                    
+                    <div id="ticketPreviewContainer" class="hidden">
+                        <div id="ticketPreview" class="ticket-preview">
+                            <!-- Nội dung vé sẽ được tạo động -->
+                        </div>
+                        <button class="btn btn-secondary" onclick="downloadPDF()">📥 Tải Vé PDF</button>
+                    </div>
+                </div>
+                
+                <!-- Tab Quét Vé -->
+                <div id="scan" class="tab-content">
+                    <h2 style="margin-bottom: 20px; color: #333;">Quét Mã Vé</h2>
+                    
+                    <div class="camera-controls">
+                        <button class="btn btn-success" id="startCameraBtn" onclick="startCamera()">📷 Bật Camera</button>
+                        <button class="btn btn-danger hidden" id="stopCameraBtn" onclick="stopCamera()">⏹️ Tắt Camera</button>
+                    </div>
+                    
+                    <div id="reader" class="hidden"></div>
+                    
+                    <div style="margin: 20px 0; text-align: center; color: #999;">
+                        <p>--- HOẶC ---</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>⌨️ Nhập Mã Vé Thủ Công</label>
+                        <input type="text" id="scanInput" placeholder="VE..." style="font-family: monospace;">
+                    </div>
+                    <button class="btn btn-primary" onclick="manualScan()">Kiểm Tra Vé</button>
+                    
+                    <div id="scanResult"></div>
+                </div>
+                
+                <!-- Tab Danh Sách -->
+                <div id="list" class="tab-content">
+					<h2 style="margin-bottom: 20px; color: #333;">Danh Sách Vé</h2>
+					<div id="ticketList" class="ticket-list"></div>
+					<button class="btn btn-danger" style="margin-top: 20px;" onclick="clearOnlyAppTickets()">⚠️ Xóa Toàn Bộ Vé</button>
+
+                </div>
+            </div>
+        </div>
+        
+        <div class="card info-box">
+            <h4>📝 Hướng Dẫn Sử Dụng</h4>
+            <ul>
+                <li><strong>Bước 1:</strong> Tạo vé với thông tin đầy đủ</li>
+                <li><strong>Bước 2:</strong> Tải vé PDF để in hoặc gửi cho khách</li>
+                <li><strong>Bước 3:</strong> Bật camera để quét QR Code tại sự kiện</li>
+                <li><strong>Bước 4:</strong> Vé chỉ dùng 1 lần, sau đó bị khóa</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+        let html5QrCode = null;
+        let currentTicketCode = null;
+
+        // Quản lý dữ liệu
+        const storage = {
+            get: (key) => {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : null;
+            },
+            set: (key, value) => {
+                localStorage.setItem(key, JSON.stringify(value));
+            },
+            getAll: () => {
+                const tickets = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key.startsWith('ticket:')) {
+                        tickets.push(storage.get(key));
+                    }
+                }
+                return tickets;
+            }
+        };
+
+        // Chuyển tab
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            
+            if (tabName === 'list') {
+                displayTickets();
+            } else if (tabName !== 'scan') {
+                stopCamera();
+            }
+        }
+
+        // Tạo mã vé
+        function generateTicketCode() {
+            return 'VE' + Date.now() + Math.random().toString(36).substr(2, 9).toUpperCase();
+        }
+
+        // Tạo vé mới
+        function createTicket() {
+            const customerName = document.getElementById('customerName').value.trim();
+            const eventName = document.getElementById('eventName').value.trim();
+            const eventLocation = document.getElementById('eventLocation').value.trim();
+            const eventTime = document.getElementById('eventTime').value.trim();
+            
+            if (!customerName || !eventName) {
+                alert('Vui lòng nhập ít nhất tên khách hàng và tên sự kiện!');
+                return;
+            }
+            
+            const ticketCode = generateTicketCode();
+            currentTicketCode = ticketCode;
+            
+            const ticket = {
+                code: ticketCode,
+                customerName,
+                eventName,
+                eventLocation: eventLocation || 'Chưa xác định',
+                eventTime: eventTime || 'Chưa xác định',
+                createdAt: new Date().toISOString(),
+                used: false,
+                usedAt: null
+            };
+            
+            storage.set('ticket:' + ticketCode, ticket);
+            
+            // Hiển thị preview vé
+            displayTicketPreview(ticket);
+            
+            // Reset form
+            document.getElementById('customerName').value = '';
+            document.getElementById('eventName').value = '';
+            document.getElementById('eventLocation').value = '';
+            document.getElementById('eventTime').value = '';
+        }
+
+        // Hiển thị preview vé
+        function displayTicketPreview(ticket) {
+            const container = document.getElementById('ticketPreviewContainer');
+            const preview = document.getElementById('ticketPreview');
+            
+            // Tạo QR code
+            const qrDiv = document.createElement('div');
+            qrDiv.id = 'qrcode';
+            
+            preview.innerHTML = `
+                <h3>🎫 VÉ ĐIỆN TỬ</h3>
+                <div class="event-name">${ticket.eventName}</div>
+                <div class="customer-name">👤 ${ticket.customerName}</div>
+                <div style="margin: 20px 0;"></div>
+                <div class="ticket-code">${ticket.code}</div>
+                <div class="details">
+                    📍 ${ticket.eventLocation}<br>
+                    🕐 ${ticket.eventTime}<br>
+                    📅 Tạo: ${new Date(ticket.createdAt).toLocaleString('vi-VN')}
+                </div>
+            `;
+            
+            preview.insertBefore(qrDiv, preview.querySelector('.ticket-code'));
+            
+            new QRCode(qrDiv, {
+                text: ticket.code,
+                width: 200,
+                height: 200,
+                colorDark: "#667eea",
+                colorLight: "#ffffff",
+            });
+            
+            container.classList.remove('hidden');
+            container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // Tải PDF
+        async function downloadPDF() {
+            const preview = document.getElementById('ticketPreview');
+            
+            try {
+                const canvas = await html2canvas(preview, {
+                    scale: 2,
+                    backgroundColor: '#ffffff'
+                });
+                
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                
+                const imgWidth = 190;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                const x = (210 - imgWidth) / 2;
+                const y = 20;
+                
+                pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+                pdf.save(`ve-${currentTicketCode}.pdf`);
+                
+                alert('✅ Đã tải vé PDF thành công!');
+            } catch (error) {
+                console.error('Lỗi tạo PDF:', error);
+                alert('❌ Không thể tạo PDF. Vui lòng thử lại!');
+            }
+        }
+
+        // Bật camera
+        function startCamera() {
+            const reader = document.getElementById('reader');
+            reader.classList.remove('hidden');
+            document.getElementById('startCameraBtn').classList.add('hidden');
+            document.getElementById('stopCameraBtn').classList.remove('hidden');
+            
+            html5QrCode = new Html5Qrcode("reader");
+            
+            html5QrCode.start(
+                { facingMode: "environment" },
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 }
+                },
+                onScanSuccess,
+                onScanFailure
+            ).catch(err => {
+                console.error('Camera error:', err);
+                alert('Không thể truy cập camera. Vui lòng cấp quyền hoặc nhập mã thủ công.');
+                stopCamera();
+            });
+        }
+
+        // Tắt camera
+        function stopCamera() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    html5QrCode = null;
+                }).catch(err => console.error('Stop error:', err));
+            }
+            
+            document.getElementById('reader').classList.add('hidden');
+            document.getElementById('startCameraBtn').classList.remove('hidden');
+            document.getElementById('stopCameraBtn').classList.add('hidden');
+        }
+
+        // Xử lý quét thành công
+        function onScanSuccess(decodedText, decodedResult) {
+            stopCamera();
+            processTicket(decodedText);
+        }
+
+        // Xử lý quét thất bại
+        function onScanFailure(error) {
+            // Không làm gì, lỗi quét liên tục sẽ gây spam
+        }
+
+        // Quét thủ công
+        function manualScan() {
+            const ticketCode = document.getElementById('scanInput').value.trim();
+            if (!ticketCode) return;
+            processTicket(ticketCode);
+            document.getElementById('scanInput').value = '';
+        }
+
+        // Xử lý vé
+        function processTicket(ticketCode) {
+            const ticket = storage.get('ticket:' + ticketCode);
+            const resultDiv = document.getElementById('scanResult');
+            
+            if (!ticket) {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-error">
+                        <div class="alert-title">❌ Mã vé không tồn tại!</div>
+                        <div class="alert-details">Mã: ${ticketCode}</div>
+                    </div>
+                `;
+            } else if (ticket.used) {
+                resultDiv.innerHTML = `
+                    <div class="alert alert-error">
+                        <div class="alert-title">🚫 Vé đã được sử dụng!</div>
+                        <div class="alert-details">
+                            <p><strong>Khách hàng:</strong> ${ticket.customerName}</p>
+                            <p><strong>Sự kiện:</strong> ${ticket.eventName}</p>
+                            <p><strong>Đã dùng lúc:</strong> ${new Date(ticket.usedAt).toLocaleString('vi-VN')}</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                ticket.used = true;
+                ticket.usedAt = new Date().toISOString();
+                storage.set('ticket:' + ticketCode, ticket);
+                
+                resultDiv.innerHTML = `
+                    <div class="alert alert-success">
+                        <div class="alert-title">✅ Check-in thành công!</div>
+                        <div class="alert-details">
+                            <p><strong>Khách hàng:</strong> ${ticket.customerName}</p>
+                            <p><strong>Sự kiện:</strong> ${ticket.eventName}</p>
+                            <p><strong>Địa điểm:</strong> ${ticket.eventLocation}</p>
+                            <p><strong>Thời gian:</strong> ${new Date().toLocaleString('vi-VN')}</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            setTimeout(() => {
+                resultDiv.innerHTML = '';
+            }, 5000);
+        }
+
+        // Hiển thị danh sách vé
+        function displayTickets() {
+            const tickets = storage.getAll().sort((a, b) => 
+        new Date(b.createdAt) - new Date(a.createdAt)
+    );
+    
+    const listDiv = document.getElementById('ticketList');
+    
+    if (tickets.length === 0) {
+        listDiv.innerHTML = '<div class="empty-state">📭 Chưa có vé nào</div>';
+        return;
+    }
+    
+    listDiv.innerHTML = tickets.map(ticket => `
+        <div class="ticket-item ${ticket.used ? 'used' : 'available'}">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="ticket-code">${ticket.code}</div>
+                <button 
+                    class="btn btn-danger" 
+                    style="padding: 5px 10px; font-size: 12px; margin: 0;"
+                    onclick="deleteTicket('${ticket.code}')"
+                >
+                    🗑️ Xóa
+                </button>
+            </div>
+            <div class="ticket-info">👤 ${ticket.customerName}</div>
+            <div class="ticket-info">📅 ${ticket.eventName}</div>
+            <div class="ticket-info">📍 ${ticket.eventLocation}</div>
+            <div class="ticket-info">🕐 ${ticket.eventTime}</div>
+            <div class="ticket-info">📆 Tạo: ${new Date(ticket.createdAt).toLocaleString('vi-VN')}</div>
+            ${ticket.used ? `<div class="ticket-info" style="color: #dc2626;">✓ Đã dùng: ${new Date(ticket.usedAt).toLocaleString('vi-VN')}</div>` : ''}
+            <span class="status-badge ${ticket.used ? 'badge-used' : 'badge-available'}">
+                ${ticket.used ? 'Đã sử dụng' : 'Chưa sử dụng'}
+            </span>
+        </div>
+    `).join('');
+        }
+
+        // Hỗ trợ nhấn Enter
+        document.getElementById('scanInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                manualScan();
+            }
+        });
+
+        // Load danh sách khi tải trang
+        window.addEventListener('load', () => {
+            displayTickets();
+        });
+		
+		function clearOnlyAppTickets() {
+    if (confirm("Bạn có chắc chắn muốn xóa TẤT CẢ các vé đã tạo không?")) {
+        let keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith('ticket:')) {
+                keysToRemove.push(key);
+            }
+        }
+
+        keysToRemove.forEach(key => {
+            localStorage.removeItem(key);
+        });
+
+        alert(`✅ Đã xóa ${keysToRemove.length} vé thành công.`);
+        window.location.reload(); 
+    }
+}
+
+
+	function deleteTicket(ticketCode) {
+		const key = 'ticket:' + ticketCode;
+		if (localStorage.getItem(key)) {
+			localStorage.removeItem(key);
+			alert(`✅ Đã xóa vé ${ticketCode} thành công.`);
+			// Cập nhật lại danh sách sau khi xóa
+			displayTickets(); 
+		} else {
+			alert(`❌ Không tìm thấy vé với mã: ${ticketCode}`);
+		}
+	}
+    </script>
+</body>
+</html>
